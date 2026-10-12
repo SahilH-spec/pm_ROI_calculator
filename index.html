@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Property Operations ROI Estimate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Design tokens
+   ============================================================ */
+:root{
+  --paper:#F5F6F3;
+  --surface:#FFFFFF;
+  --ink:#1F2623;
+  --muted:#5D6964;
+  --rule:#D8DDD8;
+  --field:#FBFCFA;
+  --ledger:#2E6A4E;
+  --ledger-ink:#FFFFFF;
+  --ledger-soft:#E4EEE8;
+  --brass:#8C6A2C;
+  --brass-soft:#F4ECDC;
+  --focus:#2E6A4E;
+  --radius-sm:6px;
+  --radius-lg:10px;
+  --font:"Public Sans", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131816; --surface:#1A201D; --ink:#E7ECE9; --muted:#9BA6A0; --rule:#2F3833;
+    --field:#161C19; --ledger:#72C096; --ledger-ink:#0F1A14; --ledger-soft:#1E3227;
+    --brass:#D4AE66; --brass-soft:#2D2618; --focus:#72C096; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131816; --surface:#1A201D; --ink:#E7ECE9; --muted:#9BA6A0; --rule:#2F3833;
+  --field:#161C19; --ledger:#72C096; --ledger-ink:#0F1A14; --ledger-soft:#1E3227;
+  --brass:#D4AE66; --brass-soft:#2D2618; --focus:#72C096; color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--font); font-size:1rem; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ============================================================
+   Page layout
+   ============================================================ */
+.wrap{max-width:1180px;margin:0 auto;padding:2rem 1.25rem 6rem}
+.page-head{display:grid;gap:1.25rem;grid-template-columns:1fr;margin-bottom:2rem}
+.page-head h1{font-size:clamp(1.75rem,3.4vw,2.5rem);line-height:1.12;letter-spacing:-0.02em;margin:0;font-weight:700;max-width:22ch}
+.page-head p{margin:.5rem 0 0;color:var(--muted);max-width:60ch}
+.prepared{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));max-width:560px}
+
+.notice{
+  background:var(--brass-soft);color:var(--ink);border-left:3px solid var(--brass);
+  padding:.75rem 1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem;font-size:.92rem
+}
+.notice strong{font-weight:600}
+
+.grid{display:grid;grid-template-columns:1fr;gap:2rem;align-items:start}
+@media (min-width:980px){
+  .grid{grid-template-columns:minmax(0,1fr) 420px}
+  .statement{position:sticky;top:calc(env(safe-area-inset-top,0px) + 1.25rem)}
+}
+
+/* ============================================================
+   Input steps
+   ============================================================ */
+.step{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.25rem}
+.step > header{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.35rem}
+.step-num{
+  flex:none;width:1.75rem;height:1.75rem;border-radius:50%;
+  display:inline-grid;place-items:center;font-size:.85rem;font-weight:600;
+  background:var(--ledger-soft);color:var(--ledger);transform:translateY(-1px)
+}
+.step h2{font-size:1.2rem;margin:0;font-weight:600;letter-spacing:-0.01em}
+.step .lede{color:var(--muted);margin:0 0 1.25rem;font-size:.95rem;max-width:62ch}
+
+.fields{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.field{display:flex;flex-direction:column;gap:.35rem;font-size:.9rem}
+.field > span{font-weight:500}
+.field small{color:var(--muted);font-size:.8rem}
+.field small.warn{color:var(--brass)}
+
+input[type=number],input[type=text],select{
+  width:100%;background:var(--field);border:1px solid var(--rule);border-radius:var(--radius-sm);
+  padding:.55rem .7rem;min-height:2.5rem;font-variant-numeric:tabular-nums
+}
+input[type=number]:hover,input[type=text]:hover,select:hover{border-color:var(--muted)}
+.affix{position:relative;display:flex;align-items:center}
+.affix input{padding-left:1.6rem}
+.affix.suffix input{padding-left:.7rem;padding-right:2rem}
+.affix .pre,.affix .suf{position:absolute;color:var(--muted);font-size:.9rem;pointer-events:none}
+.affix .pre{left:.7rem}
+.affix .suf{right:.7rem}
+
+/* tables of inputs */
+.table-wrap{overflow-x:auto;margin:0 -.25rem}
+table.inputs{width:100%;border-collapse:collapse;min-width:480px}
+table.inputs th{text-align:left;font-weight:500;font-size:.82rem;color:var(--muted);padding:.4rem .5rem;border-bottom:1px solid var(--rule)}
+table.inputs td{padding:.5rem;border-bottom:1px solid var(--rule);vertical-align:middle}
+table.inputs tr:last-child td{border-bottom:none}
+table.inputs td.label{font-size:.95rem}
+table.inputs td.label small{display:block;color:var(--muted);font-size:.8rem}
+table.inputs td.w-num{width:130px}
+table.inputs td.w-sel{width:130px}
+table.inputs tfoot td{font-weight:600;border-top:1px solid var(--rule);border-bottom:none}
+
+.row-actions{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin-top:1rem}
+.btn{
+  border:1px solid var(--rule);background:var(--surface);border-radius:var(--radius-sm);
+  padding:.55rem .9rem;cursor:pointer;font-weight:500;font-size:.9rem;min-height:2.5rem
+}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ledger);color:var(--ledger-ink);border-color:var(--ledger)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.quiet{border-color:transparent;color:var(--muted)}
+.btn.quiet:hover{color:var(--ink);border-color:var(--rule)}
+
+.check{display:flex;align-items:center;gap:.6rem;cursor:pointer}
+.check input{width:1.1rem;height:1.1rem;accent-color:var(--ledger);flex:none}
+tr.off td:not(:first-child){opacity:.45}
+
+details.assume{border-top:1px solid var(--rule);margin-top:.5rem;padding-top:.75rem}
+details.assume summary{cursor:pointer;font-weight:500;padding:.25rem 0}
+details.assume[open] summary{margin-bottom:1rem}
+.sub{font-size:1rem;font-weight:600;margin:1.5rem 0 .5rem}
+.sub:first-of-type{margin-top:0}
+
+/* ============================================================
+   Statement (results)
+   ============================================================ */
+.statement{
+  background:var(--surface);border:1px solid var(--rule);border-top:6px solid var(--ledger);
+  border-radius:var(--radius-sm);padding:1.5rem 1.5rem 1.25rem
+}
+.st-head h2{margin:0;font-size:1.15rem;font-weight:600}
+.st-head p{margin:.15rem 0 1rem;color:var(--muted);font-size:.88rem}
+.scenario{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1.25rem}
+.scenario button{border:0;background:transparent;padding:.5rem .25rem;cursor:pointer;font-size:.88rem;font-weight:500;color:var(--muted);min-height:2.5rem}
+.scenario button + button{border-left:1px solid var(--rule)}
+.scenario button[aria-pressed="true"]{background:var(--ledger-soft);color:var(--ink);font-weight:600}
+
+.lines{margin:0;padding:0}
+.line{display:flex;align-items:baseline;gap:.4rem;padding:.4rem 0;font-size:.95rem}
+.line dt{flex:none;max-width:62%}
+.line dt small{display:block;color:var(--muted);font-size:.78rem}
+.line .lead{flex:1;border-bottom:1px dotted var(--muted);opacity:.5;transform:translateY(-.3em);min-width:1rem}
+.line dd{margin:0;flex:none;font-variant-numeric:tabular-nums;font-weight:500}
+.line.minus dd{color:var(--muted)}
+.total{
+  margin-top:.5rem;padding-top:.75rem;border-top:3px double var(--ink);
+  display:flex;align-items:baseline;justify-content:space-between;gap:1rem
+}
+.total span{font-weight:600}
+.total strong{font-size:2rem;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;font-weight:700}
+.total strong.neg{color:var(--brass)}
+
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.25rem;margin:1.5rem 0;padding:1rem 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.metric b{display:block;font-size:1.3rem;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.metric span{color:var(--muted);font-size:.82rem;line-height:1.35;display:block}
+.metric.wide{grid-column:1 / -1}
+
+.bars h3{font-size:.92rem;font-weight:600;margin:0 0 .75rem}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem .75rem;margin-bottom:.6rem;font-size:.85rem}
+.bar .track{grid-column:1 / -1;height:6px;background:var(--ledger-soft);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;background:var(--ledger);border-radius:3px;transition:width .35s ease}
+.bar .v{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+.st-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.25rem}
+.fine{color:var(--muted);font-size:.78rem;margin:1rem 0 0;line-height:1.45}
+
+/* mobile summary bar */
+.mbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:var(--surface);border-top:1px solid var(--rule);
+  padding:.7rem 1.25rem calc(.7rem + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;justify-content:space-between;gap:1rem
+}
+.mbar span{display:block;font-size:.78rem;color:var(--muted)}
+.mbar strong{font-size:1.25rem;font-variant-numeric:tabular-nums}
+.mbar a{color:var(--ledger);font-weight:600;font-size:.9rem;text-decoration:none;padding:.5rem 0}
+@media (min-width:980px){.mbar{display:none}}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(5rem + env(safe-area-inset-bottom,0px));transform:translate(-50%,1rem);
+  background:var(--ink);color:var(--paper);padding:.55rem 1rem;border-radius:var(--radius-sm);
+  font-size:.88rem;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:30
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+#printSummary{display:none}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important}
+}
+
+/* ============================================================
+   Print / Save as PDF
+   ============================================================ */
+@media print{
+  :root{--paper:#fff;--surface:#fff;--ink:#111;--muted:#555;--rule:#ccc;--ledger:#2E6A4E;--ledger-soft:#E4EEE8;padding:0}
+  body{background:#fff;font-size:11pt}
+  .wrap{padding:0;max-width:none}
+  .inputs-col,.mbar,.st-actions,.notice,.toast,.prepared,.page-head p{display:none !important}
+  .grid{display:block}
+  .statement{position:static;border:1px solid #ccc;border-top:6px solid var(--ledger);break-inside:avoid}
+  .scenario button:not([aria-pressed="true"]){display:none}
+  .scenario{display:block;border:0;margin-bottom:.5rem}
+  .scenario button{padding:0;color:#111;background:none !important}
+  #printSummary{display:block;margin-bottom:1rem}
+  #printSummary table{width:100%;border-collapse:collapse;font-size:10pt}
+  #printSummary td{padding:.25rem .5rem;border-bottom:1px solid #ddd}
+  #printSummary h2{font-size:12pt;margin:0 0 .5rem}
+  .page-head{margin-bottom:1rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page-head">
+    <div>
+      <h1>See what your team could get back each year</h1>
+      <p>Enter your portfolio, team, and current tools. The estimate updates as you go and shows hours returned, costs replaced, and how much room your team has to grow without adding headcount.</p>
+    </div>
+    <div class="prepared">
+      <label class="field"><span>Company name</span><input type="text" data-k="company" placeholder="e.g. Lakeview Property Group" autocomplete="organization"></label>
+      <label class="field"><span>Prepared by</span><input type="text" data-k="preparedBy" placeholder="Your name"></label>
+    </div>
+  </header>
+
+  <div class="notice" id="placeholderNotice" hidden>
+    <strong>Sample assumptions are loaded.</strong> Time-savings rates and platform pricing are placeholders. Update them in step 5 before sharing this estimate.
+  </div>
+
+  <div class="grid">
+    <!-- ================= INPUTS ================= -->
+    <div class="inputs-col">
+
+      <section class="step" aria-labelledby="s1">
+        <header><span class="step-num">1</span><h2 id="s1">Portfolio</h2></header>
+        <p class="lede">The basics of what you manage today.</p>
+        <div class="fields">
+          <label class="field"><span>Units managed</span>
+            <input type="number" data-k="units" min="1" max="2000" step="1" inputmode="numeric">
+            <small id="unitsHint">Built for 40 to 499 units</small>
+          </label>
+          <label class="field"><span>Properties</span>
+            <input type="number" data-k="properties" min="1" step="1" inputmode="numeric">
+          </label>
+          <label class="field"><span>Share that's fee-managed</span>
+            <div class="affix suffix"><input type="number" data-k="feePct" min="0" max="100" step="5"><span class="suf">%</span></div>
+            <small>The rest is owner-operated</small>
+          </label>
+          <label class="field"><span>Average monthly rent</span>
+            <div class="affix"><span class="pre">$</span><input type="number" data-k="rent" min="0" step="25"></div>
+          </label>
+          <label class="field"><span>Vacancy rate</span>
+            <div class="affix suffix"><input type="number" data-k="vacancy" min="0" max="100" step="0.5"><span class="suf">%</span></div>
+          </label>
+          <label class="field"><span>Annual turnover</span>
+            <div class="affix suffix"><input type="number" data-k="turnover" min="0" max="100" step="1"><span class="suf">%</span></div>
+            <small>Share of units that turn over in a year</small>
+          </label>
+          <label class="field"><span>Rent paid by paper check</span>
+            <div class="affix suffix"><input type="number" data-k="checkPct" min="0" max="100" step="1"><span class="suf">%</span></div>
+          </label>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <header><span class="step-num">2</span><h2 id="s2">Team</h2></header>
+        <p class="lede">Who does the work and what an hour of their time costs, including payroll taxes and benefits. If one person wears several hats, count them in the role they spend the most time on.</p>
+        <div class="table-wrap">
+          <table class="inputs">
+            <thead><tr><th>Role</th><th>People</th><th>Loaded hourly cost</th></tr></thead>
+            <tbody id="rolesBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s3">
+        <header><span class="step-num">3</span><h2 id="s3">Weekly hours by task</h2></header>
+        <p class="lede">Roughly how many hours your whole team spends on each task in a typical week. Not sure? Fill in typical numbers for your unit count, then adjust.</p>
+        <div class="table-wrap">
+          <table class="inputs">
+            <thead><tr><th>Task</th><th>Done mostly by</th><th>Hours per week</th></tr></thead>
+            <tbody id="tasksBody"></tbody>
+            <tfoot><tr><td>Total</td><td></td><td class="num" id="hoursTotal">0</td></tr></tfoot>
+          </table>
+        </div>
+        <div class="row-actions">
+          <button class="btn" type="button" id="fillHours">Fill typical hours for my unit count</button>
+          <small class="num" style="color:var(--muted)" id="hoursCapacity"></small>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s4">
+        <header><span class="step-num">4</span><h2 id="s4">Current tools</h2></header>
+        <p class="lede">Check what you pay for today. Mark anything you'd keep using alongside a single platform as "Keep" so it isn't counted as a savings.</p>
+        <div class="fields" style="margin-bottom:1.25rem">
+          <label class="field"><span>Main system you run the business on</span>
+            <select data-k="core" id="coreSelect"></select>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table class="inputs">
+            <thead><tr><th>Tool</th><th>Monthly cost</th><th>With one platform</th></tr></thead>
+            <tbody id="toolsBody"></tbody>
+            <tfoot><tr><td>Current monthly spend</td><td class="num" id="toolsTotal">$0</td><td></td></tr></tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s5">
+        <header><span class="step-num">5</span><h2 id="s5">Assumptions</h2></header>
+        <p class="lede">These drive the estimate. Adjust them to match your operation.</p>
+        <div class="fields">
+          <label class="field"><span>Platform cost per month</span>
+            <div class="affix"><span class="pre">$</span><input type="number" data-k="platformOverride" min="0" step="10" placeholder="auto"></div>
+            <small id="platformHint"></small>
+          </label>
+          <label class="field"><span>One-time setup and onboarding</span>
+            <div class="affix"><span class="pre">$</span><input type="number" data-k="onboarding" min="0" step="50"></div>
+          </label>
+        </div>
+        <div class="row-actions" style="margin-bottom:.5rem">
+          <label class="check"><input type="checkbox" data-k="includeRevenue"><span>Include revenue from filling vacant units faster</span></label>
+        </div>
+
+        <details class="assume">
+          <summary>Edit time-savings rates and other assumptions</summary>
+
+          <h3 class="sub">Share of time saved on each task</h3>
+          <div class="table-wrap">
+            <table class="inputs">
+              <thead><tr><th>Task</th><th>Conservative</th><th>Expected</th><th>Aggressive</th></tr></thead>
+              <tbody id="effBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="sub">Starting point adjustment</h3>
+          <p class="lede" style="margin-bottom:.75rem">Teams moving off spreadsheets usually gain more than teams already on a property management system. Savings are multiplied by this factor.</p>
+          <div class="fields">
+            <label class="field"><span>Spreadsheets or no system</span><input type="number" data-k="assume.mod.none" min="0" max="3" step="0.05"></label>
+            <label class="field"><span>Accounting software only</span><input type="number" data-k="assume.mod.accounting" min="0" max="3" step="0.05"></label>
+            <label class="field"><span>Another property management system</span><input type="number" data-k="assume.mod.pms" min="0" max="3" step="0.05"></label>
+          </div>
+
+          <h3 class="sub">Paper checks</h3>
+          <div class="fields">
+            <label class="field"><span>Minutes to handle one check</span><input type="number" data-k="assume.checkMinutes" min="0" step="0.5"></label>
+            <label class="field"><span>Share moved online, conservative</span><div class="affix suffix"><input type="number" data-k="assume.checkEff.0" min="0" max="100" step="5"><span class="suf">%</span></div></label>
+            <label class="field"><span>Expected</span><div class="affix suffix"><input type="number" data-k="assume.checkEff.1" min="0" max="100" step="5"><span class="suf">%</span></div></label>
+            <label class="field"><span>Aggressive</span><div class="affix suffix"><input type="number" data-k="assume.checkEff.2" min="0" max="100" step="5"><span class="suf">%</span></div></label>
+          </div>
+
+          <h3 class="sub">Faster unit turns</h3>
+          <div class="fields">
+            <label class="field"><span>Vacant days saved per turn, conservative</span><input type="number" data-k="assume.vacDays.0" min="0" step="0.5"></label>
+            <label class="field"><span>Expected</span><input type="number" data-k="assume.vacDays.1" min="0" step="0.5"></label>
+            <label class="field"><span>Aggressive</span><input type="number" data-k="assume.vacDays.2" min="0" step="0.5"></label>
+          </div>
+
+          <h3 class="sub">Automatic platform cost</h3>
+          <p class="lede" style="margin-bottom:.75rem">Used when "Platform cost per month" above is left blank.</p>
+          <div class="fields">
+            <label class="field"><span>Per unit, per month</span><div class="affix"><span class="pre">$</span><input type="number" data-k="assume.perUnit" min="0" step="0.05"></div></label>
+            <label class="field"><span>Monthly minimum</span><div class="affix"><span class="pre">$</span><input type="number" data-k="assume.monthlyMin" min="0" step="10"></div></label>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <!-- ================= STATEMENT ================= -->
+    <aside class="statement" id="statement" aria-labelledby="stTitle">
+      <div id="printSummary"></div>
+      <div class="st-head">
+        <h2 id="stTitle">Estimated annual impact</h2>
+        <p id="stSub">Based on your inputs</p>
+      </div>
+      <div class="scenario" role="group" aria-label="Scenario">
+        <button type="button" data-s="0">Conservative</button>
+        <button type="button" data-s="1">Expected</button>
+        <button type="button" data-s="2">Aggressive</button>
+      </div>
+
+      <dl class="lines" aria-live="polite">
+        <div class="line"><dt>Team time returned<small id="lHoursSub"></small></dt><span class="lead"></span><dd id="lLabor">$0</dd></div>
+        <div class="line"><dt>Tools you'd no longer pay for</dt><span class="lead"></span><dd id="lTools">$0</dd></div>
+        <div class="line" id="lineRevenue"><dt>Rent from faster turns</dt><span class="lead"></span><dd id="lRevenue">$0</dd></div>
+        <div class="line minus"><dt>Less platform cost<small>12 months</small></dt><span class="lead"></span><dd id="lPlatform">($0)</dd></div>
+      </dl>
+      <div class="total"><span>Net annual value</span><strong id="net">$0</strong></div>
+
+      <div class="metrics">
+        <div class="metric"><b id="mRoi">0%</b><span>First-year return, after setup costs</span></div>
+        <div class="metric"><b id="mPayback">0</b><span>Months for savings to cover the first-year cost</span></div>
+        <div class="metric"><b id="mHours">0</b><span>Hours returned per year<span id="mFte"></span></span></div>
+        <div class="metric"><b id="mDoor">$0</b><span>Net value per unit, per year</span></div>
+        <div class="metric wide"><b id="mGrowth">0 units</b><span>Room to grow with your current team, using the hours returned</span></div>
+      </div>
+
+      <div class="bars">
+        <h3>Where the hours come from</h3>
+        <div id="barsBody"></div>
+      </div>
+
+      <div class="st-actions">
+        <button class="btn primary" type="button" id="printBtn">Print or save as PDF</button>
+        <button class="btn" type="button" id="copyBtn">Copy summary</button>
+        <button class="btn quiet" type="button" id="resetBtn">Reset</button>
+      </div>
+      <p class="fine">This is an estimate based on the numbers entered above and general assumptions. It isn't a quote or a guarantee. Actual results depend on your processes, adoption, and setup.</p>
+    </aside>
+  </div>
+</div>
+
+<div class="mbar" aria-hidden="false">
+  <div><span>Net annual value</span><strong id="mbNet">$0</strong></div>
+  <a href="#statement">See breakdown</a>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ==================================================================
+   CONFIG
+   Everything the estimate depends on lives here. Values marked
+   PLACEHOLDER are sample numbers. Replace them with verified figures
+   before sharing with prospects, then set showPlaceholderNotice: false.
+   ================================================================== */
+const CONFIG = {
+  showPlaceholderNotice: true,          // shows the "sample assumptions" banner
+  storageKey: "pm-roi-estimate-v1",
+  hoursPerFTE: 2080,
+
+  roles: [
+    { id: "pm",       label: "Property managers",        count: 2, rate: 34 }, // PLACEHOLDER rates
+    { id: "leasing",  label: "Leasing",                  count: 1, rate: 25 },
+    { id: "accounting", label: "Accounting and bookkeeping", count: 1, rate: 30 },
+    { id: "maint",    label: "Maintenance coordination", count: 1, rate: 24 }
+  ],
+
+  // hrsPer100: typical team hours per week per 100 units (PLACEHOLDER)
+  // eff: share of time saved [conservative, expected, aggressive] (PLACEHOLDER)
+  tasks: [
+    { id: "payments",    label: "Rent collection and deposits", note: "Posting payments, chasing late rent", role: "accounting", hrsPer100: 5,  eff: [0.35, 0.50, 0.65] },
+    { id: "leasing",     label: "Leasing and screening",        note: "Listings, showings, applications",    role: "leasing",    hrsPer100: 8,  eff: [0.20, 0.35, 0.50] },
+    { id: "maintenance", label: "Maintenance coordination",     note: "Work orders, vendors, follow-up",     role: "maint",      hrsPer100: 10, eff: [0.20, 0.30, 0.45] },
+    { id: "accounting",  label: "Accounting and owner reporting", note: "Bills, reconciliations, statements", role: "accounting", hrsPer100: 8,  eff: [0.25, 0.40, 0.55] },
+    { id: "comms",       label: "Resident communication",       note: "Calls, emails, texts, notices",       role: "pm",         hrsPer100: 7,  eff: [0.15, 0.25, 0.40] },
+    { id: "admin",       label: "Inspections and admin",        note: "Inspections, renewals, paperwork",    role: "pm",         hrsPer100: 4,  eff: [0.15, 0.25, 0.35] }
+  ],
+
+  // Main system options. "group" picks the starting-point adjustment.
+  coreSystems: [
+    { id: "none",         label: "Spreadsheets or no system", group: "none" },
+    { id: "quickbooks",   label: "QuickBooks or other accounting software", group: "accounting" },
+    { id: "yardi_breeze", label: "Yardi Breeze", group: "pms" },
+    { id: "buildium",     label: "Buildium", group: "pms" },
+    { id: "rentmanager",  label: "Rent Manager", group: "pms" },
+    { id: "propertyware", label: "Propertyware", group: "pms" },
+    { id: "doorloop",     label: "DoorLoop", group: "pms" },
+    { id: "other",        label: "Another property management system", group: "pms" }
+  ],
+
+  // Monthly costs are PLACEHOLDER starting points the user edits.
+  tools: [
+    { id: "core",        label: "Property management software", use: true,  cost: 250, mode: "replace" },
+    { id: "acct",        label: "Separate accounting software",  use: true,  cost: 90,  mode: "replace" },
+    { id: "payments",    label: "Online rent payments",          use: false, cost: 60,  mode: "replace" },
+    { id: "screening",   label: "Tenant screening",              use: true,  cost: 40,  mode: "replace" },
+    { id: "maintenance", label: "Maintenance and work orders",   use: false, cost: 100, mode: "replace" },
+    { id: "website",     label: "Website and listing syndication", use: true, cost: 75, mode: "replace" },
+    { id: "esign",       label: "E-signature",                   use: true,  cost: 40,  mode: "replace" },
+    { id: "inspections", label: "Inspections app",               use: false, cost: 50,  mode: "replace" },
+    { id: "phones",      label: "Phone or answering service",    use: false, cost: 200, mode: "keep" }
+  ],
+
+  assume: {
+    mod: { none: 1.25, accounting: 1.15, pms: 1.0 },  // PLACEHOLDER
+    checkMinutes: 4,                                  // PLACEHOLDER
+    checkEff: [60, 75, 90],                           // % of check volume moved online, PLACEHOLDER
+    vacDays: [1, 3, 5],                               // vacant days saved per turn, PLACEHOLDER
+    perUnit: 1.5,                                     // PLACEHOLDER platform $/unit/month
+    monthlyMin: 300                                   // PLACEHOLDER platform monthly minimum
+  },
+  onboarding: 750,                                    // PLACEHOLDER one-time cost
+  maxTaskSavings: 0.9                                 // never assume more than 90% of a task disappears
+};
+
+const SCENARIOS = ["Conservative", "Expected", "Aggressive"];
+
+/* ==================================================================
+   STATE
+   ================================================================== */
+function defaultState(){
+  const s = {
+    company: "", preparedBy: "",
+    units: 150, properties: 12, feePct: 60, rent: 1450, vacancy: 6, turnover: 40, checkPct: 15,
+    core: "quickbooks",
+    roles: {}, hours: {}, tools: {}, eff: {},
+    platformOverride: "", onboarding: CONFIG.onboarding, includeRevenue: false,
+    scenario: 1,
+    assume: JSON.parse(JSON.stringify(CONFIG.assume))
+  };
+  CONFIG.roles.forEach(r => s.roles[r.id] = { count: r.count, rate: r.rate });
+  CONFIG.tasks.forEach(t => { s.eff[t.id] = t.eff.map(v => Math.round(v * 100)); });
+  CONFIG.tools.forEach(t => s.tools[t.id] = { use: t.use, cost: t.cost, mode: t.mode });
+  s.hours = typicalHours(s);
+  return s;
+}
+
+function typicalHours(s){
+  const u = Math.max(0, +s.units || 0) / 100;
+  const feeFactor = 0.6 + 0.8 * ((+s.feePct || 0) / 100);   // owner reporting grows with fee-managed share
+  const out = {};
+  CONFIG.tasks.forEach(t => {
+    let h = u * t.hrsPer100;
+    if (t.id === "accounting") h *= feeFactor;
+    if (t.id === "admin") h += (+s.properties || 0) * 0.15;
+    out[t.id] = Math.round(h * 2) / 2;
+  });
+  return out;
+}
+
+function deepMerge(base, extra){
+  if (!extra || typeof extra !== "object") return base;
+  for (const k of Object.keys(extra)){
+    if (base[k] && typeof base[k] === "object" && !Array.isArray(base[k])) deepMerge(base[k], extra[k]);
+    else if (k in base) base[k] = extra[k];
+  }
+  return base;
+}
+
+let state = defaultState();
+try {
+  const saved = localStorage.getItem(CONFIG.storageKey);
+  if (saved) state = deepMerge(defaultState(), JSON.parse(saved));
+} catch (e) { /* storage unavailable: keep defaults */ }
+
+function save(){
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); } catch (e) {}
+}
+
+const getPath = (obj, path) => path.split(".").reduce((o, k) => (o == null ? o : o[k]), obj);
+function setPath(obj, path, val){
+  const keys = path.split("."); const last = keys.pop();
+  const target = keys.reduce((o, k) => o[k], obj);
+  target[last] = val;
+}
+
+/* ==================================================================
+   BUILD DYNAMIC INPUTS
+   ================================================================== */
+const $ = id => document.getElementById(id);
+const roleLabel = id => (CONFIG.roles.find(r => r.id === id) || {}).label || id;
+
+function numInput(key, opts = {}){
+  const { min = 0, step = 1, pre = "", suf = "", max = "" } = opts;
+  const input = `<input type="number" data-k="${key}" min="${min}" ${max !== "" ? `max="${max}"` : ""} step="${step}" aria-label="${opts.label || key}">`;
+  if (pre) return `<div class="affix"><span class="pre">${pre}</span>${input}</div>`;
+  if (suf) return `<div class="affix suffix">${input}<span class="suf">${suf}</span></div>`;
+  return input;
+}
+
+function buildInputs(){
+  $("rolesBody").innerHTML = CONFIG.roles.map(r => `
+    <tr>
+      <td class="label">${r.label}</td>
+      <td class="w-num">${numInput(`roles.${r.id}.count`, { step: 0.5, label: r.label + " headcount" })}</td>
+      <td class="w-num">${numInput(`roles.${r.id}.rate`, { pre: "$", step: 1, label: r.label + " hourly cost" })}</td>
+    </tr>`).join("");
+
+  $("tasksBody").innerHTML = CONFIG.tasks.map(t => `
+    <tr>
+      <td class="label">${t.label}<small>${t.note}</small></td>
+      <td>
+        <span style="color:var(--muted);font-size:.88rem">${roleLabel(t.role)}</span>
+      </td>
+      <td class="w-num">${numInput(`hours.${t.id}`, { step: 0.5, label: t.label + " hours per week" })}</td>
+    </tr>`).join("");
+
+  $("coreSelect").innerHTML = CONFIG.coreSystems.map(c => `<option value="${c.id}">${c.label}</option>`).join("");
+
+  $("toolsBody").innerHTML = CONFIG.tools.map(t => `
+    <tr data-tool="${t.id}">
+      <td class="label"><label class="check"><input type="checkbox" data-k="tools.${t.id}.use"><span>${t.label}</span></label></td>
+      <td class="w-num">${numInput(`tools.${t.id}.cost`, { pre: "$", step: 5, label: t.label + " monthly cost" })}</td>
+      <td class="w-sel"><select data-k="tools.${t.id}.mode" aria-label="${t.label} with one platform">
+        <option value="replace">Replace</option><option value="keep">Keep</option></select></td>
+    </tr>`).join("");
+
+  $("effBody").innerHTML = CONFIG.tasks.map(t => `
+    <tr>
+      <td class="label">${t.label}</td>
+      ${[0,1,2].map(i => `<td class="w-num">${numInput(`eff.${t.id}.${i}`, { suf: "%", step: 5, max: 100, label: `${t.label} ${SCENARIOS[i]}` })}</td>`).join("")}
+    </tr>`).join("");
+}
+
+function syncInputsFromState(){
+  document.querySelectorAll("[data-k]").forEach(el => {
+    const v = getPath(state, el.dataset.k);
+    if (v === undefined) return;
+    if (el.type === "checkbox") el.checked = !!v;
+    else el.value = v;
+  });
+}
+
+/* ==================================================================
+   CALCULATION
+   ================================================================== */
+function calc(s){
+  const sc = s.scenario;
+  const units = Math.max(0, +s.units || 0);
+  const group = (CONFIG.coreSystems.find(c => c.id === s.core) || { group: "pms" }).group;
+  const mod = +s.assume.mod[group] || 1;
+
+  // Task hours
+  let weeklyTotal = 0, hoursSaved = 0, laborValue = 0;
+  const byTask = CONFIG.tasks.map(t => {
+    const weekly = Math.max(0, +s.hours[t.id] || 0);
+    weeklyTotal += weekly;
+    const eff = Math.min(((+s.eff[t.id][sc] || 0) / 100) * mod, CONFIG.maxTaskSavings);
+    const saved = weekly * 52 * eff;
+    const rate = +(s.roles[t.role] || {}).rate || 0;
+    hoursSaved += saved; laborValue += saved * rate;
+    return { label: t.label, saved };
+  });
+
+  // Paper checks
+  const occupied = units * (1 - Math.min(100, +s.vacancy || 0) / 100);
+  const checksPerYear = occupied * ((+s.checkPct || 0) / 100) * 12;
+  const checkHours = checksPerYear * (+s.assume.checkMinutes || 0) / 60;
+  const checkSaved = checkHours * ((+s.assume.checkEff[sc] || 0) / 100);
+  const acctRate = +(s.roles.accounting || {}).rate || 0;
+  hoursSaved += checkSaved; laborValue += checkSaved * acctRate;
+  if (checkSaved > 0) byTask.push({ label: "Paper check handling", saved: checkSaved });
+
+  // Tools replaced
+  let toolsMonthly = 0, toolsReplacedMonthly = 0;
+  CONFIG.tools.forEach(t => {
+    const st = s.tools[t.id];
+    if (!st || !st.use) return;
+    const c = Math.max(0, +st.cost || 0);
+    toolsMonthly += c;
+    if (st.mode === "replace") toolsReplacedMonthly += c;
+  });
+  const toolsReplaced = toolsReplacedMonthly * 12;
+
+  // Revenue from faster turns
+  let revenue = 0;
+  if (s.includeRevenue){
+    const turns = units * ((+s.turnover || 0) / 100);
+    const dailyRent = (+s.rent || 0) * 12 / 365;
+    revenue = turns * (+s.assume.vacDays[sc] || 0) * dailyRent;
+  }
+
+  // Platform cost
+  const autoMonthly = Math.max(units * (+s.assume.perUnit || 0), +s.assume.monthlyMin || 0);
+  const override = s.platformOverride === "" || s.platformOverride == null ? null : Math.max(0, +s.platformOverride);
+  const platformMonthly = override == null ? autoMonthly : override;
+  const platformAnnual = platformMonthly * 12;
+  const onboarding = Math.max(0, +s.onboarding || 0);
+
+  const benefit = laborValue + toolsReplaced + revenue;
+  const net = benefit - platformAnnual;
+  const firstYearCost = platformAnnual + onboarding;
+  const roi = firstYearCost > 0 ? (benefit - firstYearCost) / firstYearCost : null;
+  const payback = benefit > 0 ? firstYearCost / (benefit / 12) : null;
+  const hoursPerUnitYear = units > 0 ? (weeklyTotal * 52 + checkHours) / units : 0;
+  const growth = hoursPerUnitYear > 0 ? hoursSaved / hoursPerUnitYear : 0;
+
+  return {
+    units, weeklyTotal, hoursSaved, laborValue, toolsMonthly, toolsReplaced, revenue,
+    autoMonthly, platformMonthly, platformAnnual, onboarding, benefit, net, roi, payback,
+    fte: hoursSaved / CONFIG.hoursPerFTE, perDoor: units > 0 ? net / units : 0,
+    growth, byTask, override: override != null
+  };
+}
+
+/* ==================================================================
+   RENDER
+   ================================================================== */
+const money = n => {
+  const r = Math.round(Math.abs(n));
+  const s = "$" + r.toLocaleString("en-US");
+  return n < -0.5 ? "(" + s + ")" : s;
+};
+const number = (n, d = 0) => n.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+
+function render(){
+  const r = calc(state);
+
+  // step helpers
+  const u = r.units;
+  const hint = $("unitsHint");
+  if (u && (u < 40 || u > 499)){ hint.textContent = "This estimate is built for 40 to 499 units. Results outside that range are rougher."; hint.classList.add("warn"); }
+  else { hint.textContent = "Built for 40 to 499 units"; hint.classList.remove("warn"); }
+  $("hoursTotal").textContent = number(r.weeklyTotal, 1);
+  const people = Object.values(state.roles).reduce((a, x) => a + (+x.count || 0), 0);
+  $("hoursCapacity").textContent = people > 0 ? `About ${number(r.weeklyTotal / people, 1)} hours per person each week on these tasks` : "";
+  $("toolsTotal").textContent = money(r.toolsMonthly);
+  $("platformHint").textContent = r.override
+    ? "Using the amount you entered"
+    : `Leave blank to use ${money(r.autoMonthly)} from step 5 settings`;
+  document.querySelectorAll("#toolsBody tr").forEach(tr => {
+    const st = state.tools[tr.dataset.tool];
+    tr.classList.toggle("off", !st.use);
+  });
+
+  // scenario
+  document.querySelectorAll(".scenario button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.s === state.scenario)));
+  $("stSub").textContent = state.company ? `For ${state.company}, ${SCENARIOS[state.scenario].toLowerCase()} scenario` : `${SCENARIOS[state.scenario]} scenario, based on your inputs`;
+
+  // statement lines
+  $("lHoursSub").textContent = `${number(r.hoursSaved)} hours at your team's hourly cost`;
+  $("lLabor").textContent = money(r.laborValue);
+  $("lTools").textContent = money(r.toolsReplaced);
+  $("lRevenue").textContent = money(r.revenue);
+  $("lineRevenue").hidden = !state.includeRevenue;
+  $("lPlatform").textContent = money(-r.platformAnnual);
+  const netEl = $("net");
+  netEl.textContent = money(r.net);
+  netEl.classList.toggle("neg", r.net < 0);
+  $("mbNet").textContent = money(r.net);
+
+  // metrics
+  $("mRoi").textContent = r.roi == null ? "n/a" : number(r.roi * 100) + "%";
+  $("mPayback").textContent = r.payback == null ? "Not reached" : (r.payback < 1 ? "Under 1" : number(r.payback, 1));
+  $("mHours").textContent = number(r.hoursSaved);
+  $("mFte").textContent = r.fte >= 0.05 ? `, about ${number(r.fte, 1)} of a full-time role` : "";
+  $("mDoor").textContent = money(r.perDoor);
+  const g = Math.floor(r.growth / 5) * 5;
+  $("mGrowth").textContent = g > 0 ? `About ${number(g)} more units` : "Under 5 units";
+
+  // bars
+  const max = Math.max(1, ...r.byTask.map(b => b.saved));
+  $("barsBody").innerHTML = r.byTask
+    .slice().sort((a, b) => b.saved - a.saved)
+    .map(b => `<div class="bar"><span>${b.label}</span><span class="v">${number(b.saved)} hrs</span>
+      <div class="track"><div class="fill" style="width:${(b.saved / max * 100).toFixed(1)}%"></div></div></div>`).join("");
+
+  save();
+  return r;
+}
+
+/* ==================================================================
+   EVENTS
+   ================================================================== */
+function onInput(e){
+  const el = e.target.closest("[data-k]");
+  if (!el) return;
+  let v;
+  if (el.type === "checkbox") v = el.checked;
+  else if (el.type === "number") v = el.value === "" ? (el.dataset.k === "platformOverride" ? "" : 0) : +el.value;
+  else v = el.value;
+  setPath(state, el.dataset.k, v);
+  render();
+}
+document.addEventListener("input", onInput);
+document.addEventListener("change", onInput);
+
+document.querySelector(".scenario").addEventListener("click", e => {
+  const b = e.target.closest("button[data-s]");
+  if (!b) return;
+  state.scenario = +b.dataset.s;
+  render();
+});
+
+$("fillHours").addEventListener("click", () => {
+  state.hours = typicalHours(state);
+  syncInputsFromState(); render();
+  toast("Filled typical hours for " + number(+state.units || 0) + " units");
+});
+
+$("resetBtn").addEventListener("click", () => {
+  if (!confirm("Clear all inputs and start over?")) return;
+  state = defaultState();
+  syncInputsFromState(); render();
+  toast("Inputs reset");
+});
+
+function summaryText(){
+  const r = calc(state);
+  const lines = [
+    `Property operations ROI estimate${state.company ? " for " + state.company : ""} (${SCENARIOS[state.scenario].toLowerCase()} scenario)`,
+    "",
+    `Units managed: ${number(r.units)}`,
+    `Hours returned per year: ${number(r.hoursSaved)} (about ${number(r.fte, 1)} of a full-time role)`,
+    `Team time returned: ${money(r.laborValue)}`,
+    `Tools no longer needed: ${money(r.toolsReplaced)}`
+  ];
+  if (state.includeRevenue) lines.push(`Rent from faster turns: ${money(r.revenue)}`);
+  lines.push(
+    `Less platform cost: ${money(-r.platformAnnual)}`,
+    `Net annual value: ${money(r.net)}`,
+    `First-year return: ${r.roi == null ? "n/a" : number(r.roi * 100) + "%"}`,
+    `Payback: ${r.payback == null ? "not reached" : number(r.payback, 1) + " months"}`,
+    `Room to grow with current team: about ${number(Math.floor(r.growth / 5) * 5)} units`,
+    "",
+    "Estimate based on the inputs provided and general assumptions. Not a quote or guarantee."
+  );
+  if (state.preparedBy) lines.push(`Prepared by ${state.preparedBy}`);
+  return lines.join("\n");
+}
+
+$("copyBtn").addEventListener("click", async () => {
+  const text = summaryText();
+  try { await navigator.clipboard.writeText(text); toast("Summary copied"); }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand("copy"); toast("Summary copied"); } catch (_) { toast("Copy isn't available in this browser"); }
+    ta.remove();
+  }
+});
+
+function buildPrintSummary(){
+  const r = calc(state);
+  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const rows = [
+    ["Prepared for", state.company || "Not specified"],
+    ["Prepared by", state.preparedBy || "Not specified"],
+    ["Date", today],
+    ["Units and properties", `${number(r.units)} units across ${number(+state.properties || 0)} properties`],
+    ["Team", CONFIG.roles.map(x => `${number(+state.roles[x.id].count || 0, 1)} ${x.label.toLowerCase()}`).join(", ")],
+    ["Weekly hours on core tasks", number(r.weeklyTotal, 1)],
+    ["Main system today", (CONFIG.coreSystems.find(c => c.id === state.core) || {}).label || ""],
+    ["Current tool spend", money(r.toolsMonthly) + " per month"]
+  ];
+  $("printSummary").innerHTML = `<h2>Inputs</h2><table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${escapeHtml(String(b))}</td></tr>`).join("")}</table>`;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c])); }
+window.addEventListener("beforeprint", buildPrintSummary);
+$("printBtn").addEventListener("click", () => { buildPrintSummary(); window.print(); });
+
+let toastTimer;
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* ==================================================================
+   INIT
+   ================================================================== */
+$("placeholderNotice").hidden = !CONFIG.showPlaceholderNotice;
+buildInputs();
+syncInputsFromState();
+render();
+</script>
+</body>
+</html>

@@ -1,40 +1,75 @@
-# Property Operations ROI Estimate
+# Property ROI Calculator
 
-A single-page calculator that estimates annual time and cost savings for property management teams managing 40 to 499 units. It works from portfolio size, staff hours, current tools, and software spend.
+A discovery-call ROI calculator for residential property management companies evaluating a switch to a modern, integrated property management platform. It is vendor-neutral: the platform being evaluated is just three inputs (price per unit, monthly minimum, usage fees).
 
-No build step and no server. It's one `index.html` file. Open it in a browser, or host it on GitHub Pages or any static web server.
+**Live demo:** https://sahilh-spec.github.io/pm_ROI_calculator/
 
-## What it calculates
+![Results](docs/screenshots/results-top.png)
 
-- **Team time returned:** weekly hours per task × a time-savings rate × the hourly cost of the role doing it. Paper check handling is calculated separately.
-- **Tools no longer needed:** monthly cost of every tool marked "Replace."
-- **Rent from faster turns (optional):** units turned per year × vacant days saved × daily rent.
-- **Platform cost:** either a per-unit rate with a monthly minimum, or a flat amount you enter.
-- **Results:** net annual value, first-year return (after setup), payback in months, value per unit, hours returned, and how many more units the team could take on.
+## Why it is built this way
 
-Results come in three scenarios: conservative, expected, and aggressive.
+Most ROI calculators multiply "hours saved" by a wage and call the total savings. This one separates three things that are easy to blur:
 
-## Before sharing with prospects
+- **Cash**: changes to the company's own P&L (tools cancelled, hires avoided, management-fee revenue).
+- **Capacity**: staff hours freed but not yet converted to money. Real, but it is a decision what to do with them.
+- **Owner value**: money that lands with the property owner. Shown separately and never added to the company's return.
 
-All time-savings rates, hourly costs, tool costs, and platform pricing are **placeholders**. They live in the `CONFIG` block at the top of the `<script>` section of `index.html`.
+Other design choices:
 
-1. Replace the placeholder values with verified figures. Get them from enablement or governed sources.
-2. Set `showPlaceholderNotice: false` to hide the "Sample assumptions" banner.
-3. Have the numbers reviewed before using them with customers.
+- **Break-even first.** The headline is "you need X% of the modeled benefit for this to pay for itself", not a single optimistic number.
+- **Complete cost side.** Subscription, monthly minimum, setup months, migration time and usage fees (payments, screening). Usage-based revenue is the majority of revenue for at least one large platform vendor, so ignoring it overstates the return.
+- **Conservative by default.** Three scenarios, an adoption ramp, and a discount for companies already on a modern system.
+- **Honest about what drives the result.** In the test portfolios, avoided hires were 76 to 86% of the expected cash benefit and tool consolidation alone never paid for the software. The results screen shows how much of the benefit depends on hires and what ROI looks like without them.
+- **Every number is the prospect's input or has a source tier**: A (government or filed data), B (industry body), C (vendor or secondary), J (my judgment). Judgment calls are labeled as judgment.
 
-## Run locally
+Full reasoning, formulas and the verification log are in [docs/METHODOLOGY.md](docs/METHODOLOGY.md). Sourced assumptions are in [data/assumptions.json](data/assumptions.json).
 
-Double-click `index.html`. Inputs are saved in that browser only.
+## Using it
 
-## Publish with GitHub Pages
+Five steps, each with a short explanation and a "?" on every field that explains what it asks and where the default came from.
 
-1. Create a new repository, e.g. `pm-roi-calculator`. Keep it **private** until hosting has been cleared with #security.
-2. Upload `index.html` and `README.md`. Use **Add file → Upload files**, then commit.
-3. Go to **Settings → Pages**. Set **Source** to "Deploy from a branch," choose `main` and `/ (root)`, and click **Save**.
-4. After a minute or two the site appears at `https://<your-username>.github.io/pm-roi-calculator/`.
+1. **Portfolio**: units, rent, turnovers, management fee, growth, current setup
+2. **Team**: roles, headcount, salaries (defaults are BLS medians)
+3. **Time**: weekly hours per role across nine workflows
+4. **Tools**: what they pay for today, how much goes away, months left on contract
+5. **Quote**: price per unit, minimum, setup, migration, usage-fee change, planned hires
+6. **Results**: scenario switch, a slider for "what if only part of the benefit shows up", charts, and downloads
 
-Note: GitHub Pages sites are public on free and personal plans, even when the repository is private.
+Results can be downloaded as a **PDF report** or a **CSV** (inputs, three scenarios, 36-month schedule). Everything runs in the browser. Nothing is stored or sent anywhere.
 
-## Updating
+![Quote step with help](docs/screenshots/quote-step.png)
 
-Edit `CONFIG` in `index.html` and commit. GitHub Pages redeploys automatically.
+## Run it
+
+It is one static file. Open `index.html` in a browser, or serve the repo root.
+
+```bash
+node app/build.js          # rebuild index.html from app/src and app/engine.js
+node app/parity.test.js    # check the JavaScript engine against the Python reference
+python3 reference/run.py   # run the reference model on three invented portfolios with invariant checks
+```
+
+No dependencies to install. The PDF export loads jsPDF 2.5.1 from cdnjs.
+
+## Layout
+
+| Path | What it is |
+|---|---|
+| `index.html` | Built, standalone calculator (served by GitHub Pages) |
+| `app/engine.js` | The model: pure functions, no DOM |
+| `app/src/` | Screens, help text, PDF and CSV export, styles (design tokens at the top of `styles.css`) |
+| `app/parity.test.js` | 414 comparisons between the JS engine and the Python reference |
+| `reference/` | Python reference model, invented test fixtures and invariant checks |
+| `docs/METHODOLOGY.md` | Formulas, scenarios, verification, source quality |
+| `data/assumptions.json` | Sourced inputs with tier and confidence |
+
+## Limits
+
+- The percentage of time saved per workflow, the adoption ramp, the current-setup factors and the hire credit are judgment calls. No independent time-and-motion study was found to source them from. They are labeled as such in the app and in the exports.
+- Platform reference rates are last-published or third-party-reported prices and may be out of date. Replace them with a real quote.
+- The three test portfolios are invented fixtures, not benchmarks.
+- This is an estimate for a conversation, not a guarantee of results.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

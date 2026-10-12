@@ -1,0 +1,11 @@
+{
+  "name": "property-roi-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discovery-call ROI calculator for property managers",
+  "license": "MIT",
+  "scripts": {
+    "build": "node app/build.js",
+    "test": "node app/parity.test.js"
+  }
+}

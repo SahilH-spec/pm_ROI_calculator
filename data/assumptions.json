@@ -1,0 +1,75 @@
+{
+  "_meta": {
+    "version": "0.1",
+    "retrieved": "2026-10-12",
+    "tiers": {
+      "A": "government or filed data",
+      "B": "industry body or company data on a clearly defined measure",
+      "C": "vendor-reported or secondary summary",
+      "J": "judgment, not sourced"
+    },
+    "note": "Public defaults only. Real quote structures and any internal benchmarks belong in config.local.json (gitignored)."
+  },
+  "labor": {
+    "salary_property_manager": { "value": 66700, "unit": "USD/yr", "tier": "A", "confidence": "high", "source": "https://www.bls.gov/ooh/management/property-real-estate-and-community-association-managers.htm", "note": "May 2024 median. A newer May 2025 figure of $69,990 appears on an aggregator; verify at bls.gov." },
+    "salary_bookkeeper": { "value": 49210, "unit": "USD/yr", "tier": "A", "confidence": "high", "source": "https://www.bls.gov/ooh/office-and-administrative-support/bookkeeping-accounting-and-auditing-clerks.htm", "note": "May 2024 median" },
+    "salary_admin_leasing": { "value": 47460, "unit": "USD/yr", "tier": "A", "confidence": "medium", "source": "https://www.bls.gov/ooh/office-and-administrative-support/secretaries-and-administrative-assistants.htm", "note": "Proxy. No BLS category for leasing consultants was found." },
+    "salary_maintenance_coordinator": { "value": 50340, "unit": "USD/yr", "tier": "A", "confidence": "medium", "source": "https://www.onetonline.org/link/localwages/43-5032.00", "note": "Dispatchers (43-5032), 2025 OEWS, used as a proxy." },
+    "burden_rate": { "value": 0.30, "tier": "A", "confidence": "high", "source": "https://www.bls.gov/news.release/ecec.nr0.htm", "note": "Applied to salary over 1,880 productive hours. Equivalent within 0.6% to BLS total compensation of 1.43x wages (benefits $14.01 on $32.60 wages, private industry, March 2026)." },
+    "productive_hours_per_fte_year": { "value": 1880, "tier": "J", "confidence": "medium", "note": "47 weeks x 40 hours" },
+    "weeks_worked_per_year": { "value": 47, "tier": "J", "confidence": "medium" },
+    "wage_growth": { "value": 0.034, "tier": "A", "confidence": "high", "source": "https://www.bls.gov/opub/ted/2026/compensation-costs-for-private-industry-workers-up-3-4-percent-over-the-year-ending-march-2026.htm", "note": "Private industry wages and salaries, March 2025 to March 2026" }
+  },
+  "finance": {
+    "discount_rate": { "value": 0.10, "tier": "J", "confidence": "low", "note": "User adjustable" },
+    "subscription_escalator": { "value": 0.03, "tier": "J", "confidence": "low" },
+    "horizon_months": { "value": 36, "tier": "J" }
+  },
+  "benchmarks": {
+    "units_per_employee_us": { "value": 54, "tier": "B", "confidence": "medium", "source": "https://www.appfolio.com/blog/market-update-3q2025", "note": "Q3 2025. Range across markets: 35 (Salt Lake City) to 77 (New Orleans)." },
+    "units_per_direct_team_member": { "value": 49.29, "top_quartile": 58.55, "tier": "C", "confidence": "medium", "source": "https://www.lethub.co/blog/doors-per-leasing-agent-benchmarks", "note": "NARPM/ProfitCoach 2022 via secondary summary" },
+    "properties_per_manager_median": { "value": 40, "tier": "C", "confidence": "medium", "source": "https://www.lethub.co/blog/doors-per-leasing-agent-benchmarks", "note": "NAR 2023 via secondary summary" },
+    "maintenance_coordinator_units_per": { "low": 150, "high": 300, "tier": "C", "confidence": "low", "source": "https://stealthagents.com/research/property-management-staffing-costs-2026", "note": "Attributed to NARPM 2024; could not verify the original" },
+    "days_on_market_us": { "value": 36, "tier": "C", "confidence": "medium", "source": "https://www.lethub.co/blog/cost-of-rental-vacancy", "note": "May 2024" },
+    "days_to_lease_multifamily": { "value": 41, "tier": "C", "confidence": "medium", "source": "https://lula.life/?p=15283", "note": "2025, RentCafe via secondary" },
+    "appfolio_value_added_revenue_share": { "value": 0.77, "tier": "A", "confidence": "high", "source": "https://www.sec.gov/Archives/edgar/data/1433195/000143319525000142/appf-20250930.htm", "note": "Q3 2025: value-added $192.1M and core $53.8M of $249.4M total. Why usage fees must be in the cost side." }
+  },
+  "workflow_reduction_expected_M0": {
+    "_note": "Judgment (tier J). No independent time-and-motion study found. Calibrated so blended freed capacity sits below vendor-reported 25-30% for heavy AI-feature users.",
+    "rent": 0.30, "acct": 0.25, "owner": 0.35, "leasing": 0.15, "maint": 0.15,
+    "comms": 0.10, "renewals": 0.20, "inspect": 0.15, "reentry": 0.40
+  },
+  "maturity_factor": { "M0": 1.0, "M1": 0.85, "M2": 0.55, "M3": 0.30, "tier": "J" },
+  "adoption_ramp": { "months_1_3": 0.25, "months_4_6": 0.60, "months_7_9": 0.85, "months_10_plus": 1.0, "tier": "J" },
+  "scenarios": {
+    "conservative": { "reduction_multiplier": 0.6, "ceiling": 0.15, "redeploy": 0.0, "days_saved": 0, "hire_credit": 0.5 },
+    "expected": { "reduction_multiplier": 1.0, "ceiling": 0.25, "redeploy": 0.5, "days_saved": 0, "hire_credit": 1.0 },
+    "optimistic": { "reduction_multiplier": 1.5, "ceiling": 0.35, "redeploy": 0.75, "days_saved": 2, "hire_credit": 1.0 },
+    "tier": "J"
+  },
+  "vendor_reported_time_savings": {
+    "_note": "Upper bound only. Vendor-reported, self-reported, early adopters of AI features.",
+    "tasks_hours_per_week": { "value": 10.3, "tier": "C", "source": "https://www.appfolio.com/blog/best-property-management-softwares-compared-2026", "note": "Survey of 343 property managers" },
+    "communication_hours_per_week": { "value": 11.9, "tier": "C", "source": "https://www.appfolio.com/blog/best-property-management-softwares-compared-2026" }
+  },
+  "evidence_not_used_as_causal": {
+    "autopay_on_time_rate": { "with_autopay": 0.99, "without": 0.87, "tier": "C", "source": "https://rentredi.com/blog/rentredi-survey-shows-rent-collection-trends-for-landlords-and-tenants/", "note": "Correlational: reliable tenants choose autopay. Not used as an uplift." },
+    "no_reminder_less_likely_to_pay_in_grace": { "value": 0.27, "tier": "C", "source": "https://rentredi.com/blog/the-data-behind-encouraging-on-time-rent-payments/", "note": "Vendor analysis, not independently verified" }
+  },
+  "competitor_public_pricing": {
+    "_note": "Prices change; verify before relying on them. Used only to pre-fill the current-stack and comparison inputs.",
+    "buildium": { "essential_month": 62, "growth_month": 192, "premium_month": 400, "incoming_eft": { "essential": 2.35, "growth": 1.35, "premium": 0.60 }, "esign_per_doc": { "essential": 5, "growth": 1, "premium": 0 }, "tier": "B", "confidence": "medium", "source": "https://dupple.com/learn/best-accounting-software-for-property-management" },
+    "doorloop": { "starter_month_annual_billing": 69, "pro_month_annual_billing": 149, "premium_month_annual_billing": 209, "included_units": 10, "extra_unit": 3, "tier": "B", "confidence": "medium", "source": "https://dupple.com/learn/best-accounting-software-for-property-management" },
+    "yardi_breeze": { "per_unit": 1, "minimum_month": 100, "premier_minimum_month": 400, "tier": "B", "confidence": "low", "source": "https://dupple.com/learn/best-accounting-software-for-property-management", "note": "Sources disagree on Premier per-unit price ($1 vs $2)." },
+    "rent_manager": { "basic_per_unit": 1.0, "plus_per_unit": 1.5, "premium_per_unit": 2.5, "tier": "C", "confidence": "low", "source": "https://baselane.com/?p=36486" },
+    "turbotenant_ach_renter_paid": { "value": 2, "card_pct": 0.0349, "tier": "B", "source": "https://turbotenant.com/pricing" },
+    "screening_report_range": { "low": 30, "high": 35, "tier": "C", "source": "https://www.rfp.wiki/specialty-industries/real-estate-property/apartments-com-rental-manager/innago" }
+  },
+  "platform_under_evaluation": {
+    "_note": "Public, third-party-reported defaults only. Replace with real quote structure in config.local.json.",
+    "core": { "per_unit": 1.49, "minimum_month": 298, "min_units": 50, "tier": "C", "confidence": "medium", "source": "https://www.lethub.co/blog/appfolio-pricing", "note": "Last published 2024. Quote-only as of Aug 2026. Some sources quote $1.40." },
+    "plus": { "per_unit": 3.20, "minimum_month": 960, "tier": "C", "confidence": "medium", "source": "https://www.lethub.co/blog/appfolio-pricing" },
+    "max": { "per_unit": 5.00, "minimum_month": 7500, "tier": "C", "confidence": "low", "source": "https://www.lethub.co/blog/appfolio-pricing", "note": "Sources conflict: $1,500 vs $7,500 minimum." },
+    "implementation_months_of_fees": { "value": 2, "tier": "C", "confidence": "low", "note": "Reported by users; verify." }
+  }
+}

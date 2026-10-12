@@ -1,0 +1,49 @@
+<title>Property ROI Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/*CSS*/
+</style>
+<div class="app">
+  <header class="top">
+    <h1 class="brand">Property ROI Calculator</h1>
+    <div class="top-actions">
+      <span class="chip" id="example-chip">Example data loaded</span>
+      <button type="button" class="btn quiet small" data-action="example">Load example</button>
+      <button type="button" class="btn quiet small" data-action="clear">Clear all</button>
+    </div>
+  </header>
+  <div class="shell">
+    <nav class="steps" id="steps" aria-label="Steps"></nav>
+    <main>
+      <p class="mobile-progress" id="mobile-progress"></p>
+      <div id="main-step"></div>
+    </main>
+  </div>
+  <div class="livebar" id="livebar">
+    <div class="livebar-in">
+      <div class="seg" role="group" aria-label="Scenario">
+        <button type="button" data-action="scen" data-k="conservative" aria-pressed="true">Conservative</button>
+        <button type="button" data-action="scen" data-k="expected" aria-pressed="false">Expected</button>
+        <button type="button" data-action="scen" data-k="optimistic" aria-pressed="false">Optimistic</button>
+      </div>
+      <div class="metric"><span class="k">Cash ROI, 3 years <button type="button" class="help" data-help="cashRoi" aria-label="About cash ROI" aria-expanded="false">?</button></span><span class="v" id="lb-roi"></span></div>
+      <div class="metric opt"><span class="k">Net cash, 3 years</span><span class="v" id="lb-net"></span></div>
+      <div class="metric"><span class="k">Break-even <button type="button" class="help" data-help="breakeven" aria-label="About break-even" aria-expanded="false">?</button></span><span class="v" id="lb-be"></span></div>
+      <div class="metric opt"><span class="k">Payback <button type="button" class="help" data-help="payback" aria-label="About payback" aria-expanded="false">?</button></span><span class="v" id="lb-pay"></span></div>
+    </div>
+  </div>
+</div>
+<div id="tip" role="tooltip" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script>
+/*ENGINE*/
+</script>
+<script>
+(function () {
+"use strict";
+/*APP*/
+})();
+</script>

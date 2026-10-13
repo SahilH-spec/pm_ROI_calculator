@@ -1,5 +1,7 @@
 # Property ROI Calculator
 
+[![CI](https://github.com/SahilH-spec/pm_ROI_calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/SahilH-spec/pm_ROI_calculator/actions/workflows/ci.yml)
+
 A discovery-call ROI calculator for residential property management companies evaluating a switch to a modern, integrated property management platform. It is vendor-neutral: the platform being evaluated is just three inputs (price per unit, monthly minimum, usage fees).
 
 **Live demo:** https://sahilh-spec.github.io/pm_ROI_calculator/
